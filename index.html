@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Folding a Corner: Finding ∠a</title>
+<style>
+:root{
+  --bg:#f4f6fa; --panel:#ffffff; --ink:#1d2433; --muted:#5b6475; --line:#d9dde7;
+  --paper:#fffdf3; --back:#d3e9ff; --theta:#d9620a; --a:#7b3fd1; --fold:#1f6feb;
+  --ok:#1a7f37; --bad:#c62828;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:16px}
+header{padding:14px 20px;background:#fff;border-bottom:1px solid var(--line)}
+h1{font-size:1.35rem;margin:0}
+header p{margin:4px 0 0;color:var(--muted)}
+.wrap{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(320px,1fr);gap:16px;padding:16px;max-width:1300px;margin:0 auto}
+@media (max-width:880px){.wrap{grid-template-columns:1fr}}
+.side{display:flex;flex-direction:column;gap:16px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+h2{font-size:1.02rem;margin:4px 0 10px}
+h2 + h2{margin-top:16px}
+.tabs{display:flex;gap:8px;margin-bottom:8px}
+.tab{flex:1;padding:10px;border:2px solid var(--line);background:#fff;border-radius:10px;font-weight:600;cursor:pointer;font-size:.98rem;color:var(--ink)}
+.tab.active{border-color:var(--fold);background:#eaf2ff;color:#0b4bb3}
+.note{margin:6px 2px 4px;color:var(--muted);min-height:2.6em}
+.note strong{color:var(--ink)}
+svg{width:100%;height:auto;display:block;touch-action:none;user-select:none}
+.hint{margin:4px 2px 0;color:var(--muted);font-size:.9rem}
+.row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+input[type=range]{flex:1;min-width:140px;accent-color:var(--fold);height:28px}
+button{font:inherit;cursor:pointer}
+.btn{padding:8px 14px;border-radius:8px;border:1px solid var(--line);background:#fff;font-weight:600;color:var(--ink)}
+.btn:hover{background:#f0f3f9}
+.btn.primary{background:var(--fold);border-color:var(--fold);color:#fff}
+.btn.primary:hover{background:#185ac2}
+.btn.sq{width:40px;padding:8px 0;font-size:1.1rem}
+output{font-weight:700;font-size:1.25rem;color:var(--theta);min-width:3.2em;text-align:right}
+.checks label{display:flex;align-items:center;gap:10px;padding:6px 0;cursor:pointer}
+.checks input{width:20px;height:20px;accent-color:var(--fold)}
+.read{display:grid;grid-template-columns:1fr auto;gap:6px 12px;font-size:1.05rem}
+.read .v{font-weight:700;text-align:right}
+.read .t{color:var(--theta)} .read .a{color:var(--a)}
+#work{margin-top:12px;padding:10px 12px;background:#f7f5ff;border-left:4px solid var(--a);border-radius:6px;line-height:1.6}
+#work[hidden]{display:none}
+.pred input{width:90px;padding:8px;font:inherit;font-size:1.05rem;border:1px solid var(--line);border-radius:8px}
+#feedback{font-weight:600;margin-top:8px;min-height:1.4em}
+#feedback.ok{color:var(--ok)} #feedback.bad{color:var(--bad)}
+table{width:100%;border-collapse:collapse;margin-top:10px;font-size:.98rem}
+th,td{border:1px solid var(--line);padding:6px 8px;text-align:center}
+th{background:#f2f4f8}
+td.a{color:var(--a);font-weight:700}
+.empty{color:var(--muted);text-align:center;padding:10px}
+#rule{margin-top:12px;padding:10px 12px;background:#fff7e8;border-left:4px solid var(--theta);border-radius:6px;line-height:1.6}
+#rule[hidden]{display:none}
+/* SVG styles */
+.paper{fill:var(--paper);stroke:#333;stroke-width:2.2;stroke-linejoin:round}
+.flap{stroke:#333;stroke-width:2.2;stroke-linejoin:round}
+.orig{fill:none;stroke:#8a8f99;stroke-width:2;stroke-dasharray:8 6}
+.foldline{stroke:var(--fold);stroke-width:3}
+.arcT{fill:rgba(217,98,10,.16);stroke:var(--theta);stroke-width:2}
+.arcT.ghost{fill:rgba(217,98,10,.05);stroke-dasharray:4 4}
+.arcA{fill:rgba(123,63,209,.2);stroke:var(--a);stroke-width:2}
+.rightang{fill:none;stroke:#333;stroke-width:1.6}
+text{paint-order:stroke;stroke:#fff;stroke-width:5px;stroke-linejoin:round}
+text.pt{font-size:22px;font-weight:700;fill:var(--ink)}
+text.angT{font-size:17px;font-weight:700;fill:var(--theta)}
+text.angT.ghostT{opacity:.55}
+text.angA{font-size:18px;font-weight:700;fill:var(--a)}
+text.msg{font-size:16px;font-weight:600;fill:var(--muted)}
+.handle{fill:var(--fold);stroke:#fff;stroke-width:3;cursor:grab}
+.handle:active{cursor:grabbing}
+</style>
+</head>
+<body>
+<header>
+  <h1>Folding a Corner: What happens to ∠a?</h1>
+  <p>Corner C is folded over a line from D. Change the fold angle, fold the paper, and look for a pattern for ∠a.</p>
+</header>
+
+<main class="wrap">
+  <section class="card">
+    <div class="tabs">
+      <button class="tab active" data-mode="rect">Rectangle (fold along BD)</button>
+      <button class="tab" data-mode="square">Square (fold along DE)</button>
+    </div>
+    <p id="modeNote" class="note"></p>
+    <svg id="svg" viewBox="-50 0 550 500" aria-label="Folding diagram"><g id="scene"></g></svg>
+    <p class="hint">Tip: drag the blue dot to change the fold angle.</p>
+  </section>
+
+  <section class="side">
+    <div class="card">
+      <h2>1. Choose the fold angle <span id="foldName"></span></h2>
+      <div class="row">
+        <button class="btn sq" id="minus" aria-label="Decrease angle">−</button>
+        <input type="range" id="theta" min="15" max="45" step="1" value="38">
+        <button class="btn sq" id="plus" aria-label="Increase angle">+</button>
+        <output id="thetaOut">38°</output>
+      </div>
+      <div class="row" style="margin-top:8px"><button class="btn" id="random">Random angle</button></div>
+
+      <h2>2. Fold the paper</h2>
+      <div class="row">
+        <button class="btn" id="unfoldBtn">◀ Unfold</button>
+        <input type="range" id="fold" min="0" max="1000" step="1" value="1000" aria-label="Fold progress">
+        <button class="btn primary" id="foldBtn">Fold ▶</button>
+      </div>
+
+      <h2>3. Show / hide</h2>
+      <div class="checks">
+        <label><input type="checkbox" id="hideA" checked> Hide the size of ∠a</label>
+        <label><input type="checkbox" id="showOrig" checked> Show the original position (dashed)</label>
+        <label><input type="checkbox" id="showWork"> Show the working</label>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Measurements</h2>
+      <div class="read" id="readout"></div>
+      <div id="work" hidden></div>
+    </div>
+
+    <div class="card pred">
+      <h2>Predict ∠a</h2>
+      <div class="row">
+        <span>∠a =</span><input type="number" id="pred" min="0" max="90" step="1" inputmode="numeric"><span>°</span>
+        <button class="btn primary" id="check">Check</button>
+      </div>
+      <div id="feedback"></div>
+    </div>
+
+    <div class="card">
+      <h2>Record your results</h2>
+      <div class="row">
+        <button class="btn primary" id="record">Record this fold</button>
+        <button class="btn" id="clear">Clear table</button>
+      </div>
+      <table>
+        <thead><tr><th>#</th><th>Shape</th><th>Fold angle</th><th>∠a</th><th>Fold + Fold + ∠a</th></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+      <p class="hint">What do you notice about the last column? Can you write a rule to find ∠a from the fold angle?</p>
+      <div class="row" style="margin-top:6px"><button class="btn" id="ruleBtn">Show the rule</button></div>
+      <div id="rule" hidden>
+        <strong>Rule:</strong> ∠a = 90° − 2 × fold angle<br>
+        <strong>Why?</strong> The corner at D is 90°. Folding does not change the size of an angle, so the fold angle is copied on the other side of the fold line. The 90° corner is then made up of ∠a and two equal fold angles.
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const PAD = 70, S = 360;
+  const LIM = {rect:[15,45], square:[5,45]};
+  const state = {mode:'rect', theta:38, t:1, hideA:true, showOrig:true, showWork:false, rows:[], ruleShown:false};
+  const rad = d => d*Math.PI/180;
+  const sp = p => [PAD + p[0]*S, PAD + S - p[1]*S];
+  const f1 = v => v.toFixed(1);
+  const pts = arr => arr.map(p => sp(p).map(f1).join(',')).join(' ');
+  const polar = (r,a) => [r*Math.cos(a), r*Math.sin(a)];
+
+  function sector(r, a1, a2, cls){
+    const o = sp([0,0]), p1 = sp(polar(r,a1)), p2 = sp(polar(r,a2));
+    return `<path class="${cls}" d="M${f1(o[0])},${f1(o[1])} L${f1(p1[0])},${f1(p1[1])} A${f1(r*S)},${f1(r*S)} 0 0 0 ${f1(p2[0])},${f1(p2[1])} Z"/>`;
+  }
+  function txt(s, p, cls, dx=0, dy=0, anchor='middle'){
+    const q = sp(p);
+    return `<text class="${cls}" x="${f1(q[0]+dx)}" y="${f1(q[1]+dy)}" text-anchor="${anchor}" dominant-baseline="middle">${s}</text>`;
+  }
+  function line(p, q, cls){
+    const a = sp(p), b = sp(q);
+    return `<line class="${cls}" x1="${f1(a[0])}" y1="${f1(a[1])}" x2="${f1(b[0])}" y2="${f1(b[1])}"/>`;
+  }
+
+  const isSq = () => state.mode === 'square';
+  const foldName = () => isSq() ? '∠EDC' : '∠BDC';
+  const aValue = () => 90 - 2*state.theta;
+  const isDone = () => state.t > 0.999;
+
+  function renderScene(){
+    const T = state.theta, th = rad(T), t = state.t, c = Math.cos(Math.PI*t), sq = isSq();
+    const H = sq ? 1 : Math.tan(th);
+    const D=[0,0], C=[1,0], B=[1,H], A=[0,H];
+    const F = sq ? [1, Math.tan(th)] : B;           // end of fold line on BC
+    const u = [Math.cos(th), Math.sin(th)];
+    // rotate a point of the flap about the fold line, viewed from above
+    // rotate a flap point about the fold line; a slight tilted view shows the flap lifting mid-fold
+    const sn = Math.sin(Math.PI*t);
+    const fold = p => { const d = p[0]*u[0] + p[1]*u[1]; const al = [d*u[0], d*u[1]];
+                        const z = Math.hypot(p[0]-al[0], p[1]-al[1])*sn*0.35;
+                        return [al[0] + (p[0]-al[0])*c - z*0.4, al[1] + (p[1]-al[1])*c + z]; };
+    const Cm = fold(C), aVal = aValue(), done = isDone();
+    let s = '';
+
+    if(state.showOrig && t > 0.001) s += `<polygon class="orig" points="${pts([D,C,F])}"/>`;
+    s += `<polygon class="paper" points="${pts(sq ? [D,F,B,A] : [D,B,A])}"/>`;
+    s += `<polygon class="flap" style="fill:${c >= 0 ? 'var(--paper)' : 'var(--back)'}" points="${pts([D,Cm,F])}"/>`;
+    s += line(D, F, 'foldline');
+
+    if(t < 0.001){
+      const k = 0.055;
+      const a = sp([k,0]), b = sp([k,k]), d = sp([0,k]);
+      s += `<path class="rightang" d="M${f1(a[0])},${f1(a[1])} L${f1(b[0])},${f1(b[1])} L${f1(d[0])},${f1(d[1])}"/>`;
+    }
+
+    if(!done){
+      s += sector(.26, 0, th, 'arcT');
+      s += txt(T+'°', polar(.35, th/2), 'angT');
+    } else {
+      if(state.showOrig){
+        s += sector(.26, 0, th, 'arcT ghost');
+        s += txt(T+'°', polar(.35, th/2), 'angT ghostT');
+      }
+      s += sector(.26, th, 2*th, 'arcT');
+      s += txt(T+'°', polar(.35, 1.5*th), 'angT');
+      if(aVal > 0){
+        s += sector(.16, 2*th, Math.PI/2, 'arcA');
+        s += txt(state.hideA ? 'a = ?' : `a = ${aVal}°`, [0, .17], 'angA', -10, 0, 'end');
+      } else {
+        s += txt('C lands on A, so ∠a = 0°', [.5, -.1], 'msg');
+      }
+    }
+
+    // point labels
+    s += txt('A', A, 'pt', -16, -10);
+    s += txt('D', D, 'pt', -16, 16);
+    s += txt('B', B, 'pt', 16, -10);
+    if(sq) s += txt('E', F, 'pt', 18, T === 45 ? 22 : 4, 'start');
+    const len = Math.hypot(Cm[0], Cm[1]) || 1;
+    const q = sp(Cm);
+    s += `<text class="pt" x="${f1(q[0] + Cm[0]/len*20)}" y="${f1(q[1] - Cm[1]/len*20)}" text-anchor="middle" dominant-baseline="middle">C</text>`;
+
+    const h = sp(F);
+    s += `<circle class="handle" cx="${f1(h[0])}" cy="${f1(h[1])}" r="10"/>`;
+    $('scene').innerHTML = s;
+  }
+
+  function renderPanel(){
+    const T = state.theta, aVal = aValue(), done = isDone(), sq = isSq(), hide = state.hideA;
+    const fn = foldName();
+    $('thetaOut').textContent = T + '°';
+    $('theta').value = T;
+    $('fold').value = Math.round(state.t*1000);
+    $('foldName').textContent = '(' + fn + ')';
+
+    let note;
+    if(sq){
+      note = T === 45
+        ? '<strong>E is now at B.</strong> Folding a square along its diagonal puts C exactly on A, so there is no ∠a.'
+        : '<strong>Square ABCD</strong> is folded along DE, where E is a point on BC.';
+    } else {
+      note = T === 45
+        ? '<strong>At 45° the rectangle has become a square.</strong> C lands exactly on A, so ∠a = 0°.'
+        : '<strong>Rectangle ABCD</strong> is folded along the diagonal BD. Changing the fold angle changes the shape of the rectangle.';
+    }
+    $('modeNote').innerHTML = note;
+
+    const aShown = !done ? '—' : (hide ? '?' : aVal + '°');
+    $('readout').innerHTML =
+      `<span>Fold angle ${fn} (before folding)</span><span class="v t">${T}°</span>` +
+      `<span>Folded ${fn} (after folding)</span><span class="v t">${done ? T + '°' : '—'}</span>` +
+      `<span>∠ADC (corner of the ${sq ? 'square' : 'rectangle'})</span><span class="v">90°</span>` +
+      `<span>∠a</span><span class="v a">${aShown}</span>`;
+
+    const w = $('work');
+    w.hidden = !state.showWork;
+    if(state.showWork){
+      w.innerHTML = !done ? 'Fold the paper completely to see the working.' :
+        `∠ADC = 90° (corner of a ${sq ? 'square' : 'rectangle'})<br>` +
+        `Folding along D${sq ? 'E' : 'B'} does not change the angle, so the folded ${fn} = ${T}°.<br>` +
+        `∠a = 90° − ${T}° − ${T}° = <strong>${hide ? '?' : aVal + '°'}</strong>`;
+    }
+
+    const tb = $('tbody');
+    if(!state.rows.length){
+      tb.innerHTML = '<tr><td colspan="5" class="empty">No results yet. Try a few different fold angles.</td></tr>';
+    } else {
+      tb.innerHTML = state.rows.map((r,i) =>
+        `<tr><td>${i+1}</td><td>${r.shape}</td><td>${r.theta}°</td>` +
+        `<td class="a">${hide ? '?' : r.a + '°'}</td>` +
+        `<td>${hide ? '?' : `${r.theta}° + ${r.theta}° + ${r.a}° = ${2*r.theta + r.a}°`}</td></tr>`).join('');
+    }
+    $('rule').hidden = !state.ruleShown;
+    $('ruleBtn').textContent = state.ruleShown ? 'Hide the rule' : 'Show the rule';
+  }
+
+  function render(){ renderScene(); renderPanel(); }
+
+  function setTheta(v){
+    const [lo, hi] = LIM[state.mode];
+    const nv = Math.max(lo, Math.min(hi, Math.round(v)));
+    if(nv !== state.theta){ state.theta = nv; $('feedback').textContent = ''; $('feedback').className = ''; }
+    render();
+  }
+
+  function setMode(m){
+    state.mode = m;
+    document.querySelectorAll('.tab').forEach(b => b.classList.toggle('active', b.dataset.mode === m));
+    const [lo, hi] = LIM[m];
+    $('theta').min = lo; $('theta').max = hi;
+    setTheta(state.theta);
+  }
+
+  // fold animation
+  let anim = null;
+  function animateTo(target){
+    cancelAnimationFrame(anim);
+    const start = state.t, t0 = performance.now(), dur = 1300*Math.abs(target - start);
+    if(dur < 1){ state.t = target; render(); return; }
+    const step = now => {
+      const k = Math.min(1, (now - t0)/dur);
+      const e = k < .5 ? 2*k*k : 1 - Math.pow(-2*k + 2, 2)/2;
+      state.t = start + (target - start)*e;
+      render();
+      if(k < 1) anim = requestAnimationFrame(step);
+    };
+    anim = requestAnimationFrame(step);
+  }
+
+  // controls
+  document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
+  $('theta').addEventListener('input', e => setTheta(+e.target.value));
+  $('minus').addEventListener('click', () => setTheta(state.theta - 1));
+  $('plus').addEventListener('click', () => setTheta(state.theta + 1));
+  $('random').addEventListener('click', () => {
+    const [lo, hi] = LIM[state.mode];
+    let v; do { v = lo + Math.floor(Math.random()*(hi - lo)); } while(v === state.theta);
+    setTheta(v);
+  });
+  $('fold').addEventListener('input', e => { cancelAnimationFrame(anim); state.t = +e.target.value/1000; render(); });
+  $('foldBtn').addEventListener('click', () => animateTo(1));
+  $('unfoldBtn').addEventListener('click', () => animateTo(0));
+  $('hideA').addEventListener('change', e => { state.hideA = e.target.checked; render(); });
+  $('showOrig').addEventListener('change', e => { state.showOrig = e.target.checked; render(); });
+  $('showWork').addEventListener('change', e => { state.showWork = e.target.checked; render(); });
+
+  $('check').addEventListener('click', () => {
+    const fb = $('feedback'), v = parseFloat($('pred').value);
+    if(isNaN(v)){ fb.textContent = 'Type your prediction first.'; fb.className = 'bad'; return; }
+    if(Math.abs(v - aValue()) < 0.5){
+      fb.textContent = `Correct! ∠a = ${aValue()}°. Untick "Hide" to see it on the diagram.`; fb.className = 'ok';
+    } else {
+      fb.textContent = 'Not quite. Look at how the 90° corner at D is shared, then try again.'; fb.className = 'bad';
+    }
+  });
+  $('pred').addEventListener('keydown', e => { if(e.key === 'Enter') $('check').click(); });
+
+  $('record').addEventListener('click', () => {
+    state.rows.push({shape: isSq() ? 'Square' : 'Rectangle', theta: state.theta, a: aValue()});
+    render();
+  });
+  $('clear').addEventListener('click', () => { state.rows = []; render(); });
+  $('ruleBtn').addEventListener('click', () => { state.ruleShown = !state.ruleShown; render(); });
+
+  // drag the blue dot to change the fold angle
+  const svg = $('svg');
+  let dragging = false;
+  function toModel(e){
+    const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY;
+    const q = pt.matrixTransform(svg.getScreenCTM().inverse());
+    return [(q.x - PAD)/S, (PAD + S - q.y)/S];
+  }
+  svg.addEventListener('pointerdown', e => {
+    if(e.target.classList && e.target.classList.contains('handle')){
+      dragging = true; svg.setPointerCapture(e.pointerId); e.preventDefault();
+    }
+  });
+  svg.addEventListener('pointermove', e => {
+    if(!dragging) return;
+    const p = toModel(e);
+    setTheta(Math.atan2(Math.max(p[1], 0), Math.max(p[0], 0.05))*180/Math.PI);
+  });
+  const stop = () => { dragging = false; };
+  svg.addEventListener('pointerup', stop);
+  svg.addEventListener('pointercancel', stop);
+
+  setMode('rect');
+})();
+</script>
+</body>
+</html>
