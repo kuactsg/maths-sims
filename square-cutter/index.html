@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Square Cutter</title>
+<style>
+:root{--teal:#1D9E75;--teal-l:#E1F5EE;--teal-d:#085041;--coral:#D85A30;--coral-l:#FAECE7;--coral-d:#712B13;--amber:#BA7517;--amber-l:#FAEEDA;--amber-d:#633806;--ink:#2C2C2A;--muted:#5F5E5A;--line:#D3D1C7;--bg:#F6F5F0;--blue:#185FA5;}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ink);background:var(--bg);font-size:17px;line-height:1.5}
+header{padding:14px 24px;background:#fff;border-bottom:1px solid var(--line)}
+h1{font-size:24px;margin:0;font-weight:600}
+#question{margin:6px 0 0;font-size:18px}
+main{max-width:1280px;margin:0 auto;padding:16px 24px 32px;display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:20px;align-items:start}
+@media(max-width:960px){main{grid-template-columns:1fr}}
+.card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px}
+#msg{min-height:52px;padding:12px 14px;border-radius:8px;background:#EEF4FB;color:#0C447C;margin-bottom:12px;font-size:17px}
+#msg.bad{background:var(--coral-l);color:var(--coral-d)}
+#msg.good{background:var(--teal-l);color:var(--teal-d)}
+#msg.glue{background:var(--amber-l);color:var(--amber-d)}
+svg{width:100%;height:auto;display:block;touch-action:none;user-select:none}
+.step{border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:12px;background:#fff}
+.step.locked{opacity:.45;pointer-events:none}
+.step h2{font-size:16px;margin:0 0 8px;font-weight:600}
+.step h2 span{display:inline-block;background:var(--ink);color:#fff;border-radius:50%;width:24px;height:24px;text-align:center;line-height:24px;font-size:13px;margin-right:6px}
+button{font:inherit;font-size:15px;padding:8px 12px;border-radius:8px;border:1px solid var(--line);background:#fff;cursor:pointer;margin:4px 4px 0 0}
+button:hover{border-color:#888}
+button.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+button.amber{background:var(--amber);color:#fff;border-color:var(--amber)}
+button:disabled{opacity:.4;cursor:not-allowed}
+input[type=number]{font:inherit;width:90px;padding:6px 8px;border:1px solid var(--line);border-radius:8px}
+.err{color:#A32D2D;font-size:14px;min-height:18px}
+.eq{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:15px;background:var(--bg);padding:6px 8px;border-radius:6px;margin:6px 0 0}
+.eq b{color:var(--teal-d)}
+.eq .w{color:var(--coral-d)}
+.eq .g{color:var(--amber-d)}
+#counter{font-size:22px;font-weight:600}
+details{margin-top:12px}
+summary{cursor:pointer;color:var(--muted);font-size:15px}
+.sl{display:flex;align-items:center;gap:8px;margin:8px 0;font-size:15px}
+.sl label{width:110px}
+.sl input{flex:1}
+.sl output{width:52px;text-align:right}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:14px;color:var(--muted);margin-top:10px}
+.legend i{display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:-2px;margin-right:5px;border:1.5px solid}
+</style>
+</head>
+<body>
+<header>
+  <h1>Square Cutter</h1>
+  <p id="question"></p>
+</header>
+<main>
+  <section class="card">
+    <div id="msg">Start with Step 1: make your prediction.</div>
+    <svg id="sim" role="img" aria-label="Rectangular card on a 1 cm grid"></svg>
+    <div class="legend">
+      <span><i style="background:var(--teal-l);border-color:var(--teal)"></i>Square cut from the card</span>
+      <span><i style="background:var(--coral-l);border-color:var(--coral)"></i>Leftover strip (waste)</span>
+      <span><i style="background:var(--amber-l);border-color:var(--amber)"></i>1 cm scrap piece</span>
+    </div>
+  </section>
+
+  <aside>
+    <div class="step" id="s1">
+      <h2><span>1</span>Predict</h2>
+      <div id="predQ"></div>
+      <input type="number" id="pred" min="0" step="1" placeholder="e.g. 20">
+      <button class="primary" id="lockBtn">Lock in</button>
+      <div class="err" id="predErr"></div>
+    </div>
+
+    <div class="step locked" id="s2">
+      <h2><span>2</span>Try it yourself</h2>
+      <div style="font-size:15px">Tap the card to place a square. Can you fit more than your friends?</div>
+      <div>Squares placed: <span id="counter">0</span></div>
+      <button id="undoBtn">Undo</button><button id="clearBtn">Clear</button>
+    </div>
+
+    <div class="step locked" id="s3">
+      <h2><span>3</span>Use division</h2>
+      <button class="primary" id="alongBtn">Fill along the length</button>
+      <button class="primary" id="acrossBtn" disabled>Fill across the breadth</button>
+      <div id="eqs"></div>
+      <div id="compare"></div>
+    </div>
+
+    <div class="step locked" id="s4">
+      <h2><span>4</span>What does area ÷ area do?</h2>
+      <div style="font-size:15px">Some pupils divide the areas. Let's see what that really means.</div>
+      <button class="amber" id="areaBtn">Show area ÷ area</button>
+      <button id="backBtn" disabled>Put scraps back</button>
+      <div id="areaEqs"></div>
+    </div>
+
+    <details>
+      <summary>Teacher settings</summary>
+      <div class="sl"><label for="L">Length (cm)</label><input type="range" id="L" min="6" max="40" value="30"><output id="Lo">30</output></div>
+      <div class="sl"><label for="B">Breadth (cm)</label><input type="range" id="B" min="6" max="30" value="17"><output id="Bo">17</output></div>
+      <div class="sl"><label for="S">Square side (cm)</label><input type="range" id="S" min="2" max="8" value="4"><output id="So">4</output></div>
+      <label style="font-size:15px"><input type="checkbox" id="reqPred" checked> Pupils must predict first</label><br>
+      <button id="resetBtn">Reset everything</button>
+    </details>
+  </aside>
+</main>
+
+<script>
+const NS='http://www.w3.org/2000/svg';
+const $=id=>document.getElementById(id);
+const svg=$('sim');
+const S={L:30,B:17,s:4,placed:[],stage:0,pred:null,area:false,busy:false};
+let G={},gBase,gPrev,gAnim,cells=[];
+
+function el(tag,a,p){const e=document.createElementNS(NS,tag);for(const k in a)e.setAttribute(k,a[k]);(p||gBase).appendChild(e);return e;}
+function txt(x,y,t,o={},p){const e=el('text',Object.assign({x,y,'font-size':14,fill:'#2C2C2A','text-anchor':'middle','dominant-baseline':'central','font-family':'system-ui,sans-serif'},o),p);e.textContent=t;return e;}
+function msg(t,cls=''){const m=$('msg');m.innerHTML=t;m.className=cls;}
+
+function geom(){
+  const sc=Math.min(20,560/S.L,400/S.B);
+  const cx=100,cy=80,cw=S.L*sc,ch=S.B*sc,s=S.s;
+  const nL=Math.floor(S.L/s),nB=Math.floor(S.B/s),real=nL*nB;
+  const total=S.L*S.B,sqA=s*s,left=total-real*sqA;
+  const nFull=Math.floor(left/sqA),rem=left%sqA;
+  const slots=nFull+(rem>0?1:0);
+  const sq=s*sc,gap=50;
+  const per=Math.max(1,Math.floor((Math.max(cw,420)+gap)/(sq+gap)));
+  const zx=cx,zy=cy+ch+110;
+  const rows=Math.max(1,Math.ceil(slots/per));
+  const W=cx+Math.max(cw,per*(sq+gap))+70;
+  const H=zy+rows*(sq+60)+10;
+  G={sc,cx,cy,cw,ch,nL,nB,real,total,sqA,left,nFull,rem,slots,per,sq,gap,zx,zy,W,H};
+}
+
+function setup(){
+  geom();
+  svg.innerHTML='';
+  svg.setAttribute('viewBox',`0 0 ${G.W} ${G.H}`);
+  gBase=el('g',{},svg);gPrev=el('g',{},svg);gAnim=el('g',{},svg);
+  cells=[];
+  $('question').textContent=`The length and breadth of a rectangular card measure ${S.L} cm and ${S.B} cm respectively. What is the greatest number of squares of side ${S.s} cm that can be cut from it?`;
+  $('predQ').innerHTML=`How many ${S.s} cm squares can be cut from the card?`;
+  render();
+}
+
+function render(){
+  gBase.innerHTML='';
+  const {sc,cx,cy,cw,ch,nL,nB}=G,s=S.s;
+  txt(cx+cw/2,cy-44,`${S.L} cm`,{'font-size':18,'font-weight':600});
+  txt(cx-58,cy+ch/2,`${S.B} cm`,{'font-size':18,'font-weight':600});
+  el('rect',{x:cx,y:cy,width:cw,height:ch,fill:'#fff'});
+  for(let i=1;i<S.L;i++)el('line',{x1:cx+i*sc,y1:cy,x2:cx+i*sc,y2:cy+ch,stroke:'#E6E4DC','stroke-width':1});
+  for(let j=1;j<S.B;j++)el('line',{x1:cx,y1:cy+j*sc,x2:cx+cw,y2:cy+j*sc,stroke:'#E6E4DC','stroke-width':1});
+
+  if(S.stage>=1){
+    for(let i=1;i<=nL;i++){const x=cx+i*s*sc;el('line',{x1:x,y1:cy-10,x2:x,y2:cy,stroke:'#085041','stroke-width':2});txt(x,cy-20,i*s,{'font-size':12,fill:'#085041'});}
+  }
+  if(S.stage>=2){
+    for(let j=1;j<=nB;j++){const y=cy+j*s*sc;el('line',{x1:cx-10,y1:y,x2:cx,y2:y,stroke:'#085041','stroke-width':2});txt(cx-22,y,j*s,{'font-size':12,fill:'#085041'});}
+    const rw=S.L-nL*s,bh=S.B-nB*s;
+    const st=S.area?{fill:'#fff',stroke:'#D85A30','stroke-width':1.5,'stroke-dasharray':'5 4'}:{fill:'#FAECE7',stroke:'#D85A30','stroke-width':1.5};
+    if(rw>0){el('rect',Object.assign({x:cx+nL*s*sc,y:cy,width:rw*sc,height:ch},st));txt(cx+cw+8,cy+ch/2,`${rw} cm`,{'text-anchor':'start',fill:'#712B13','font-weight':600});}
+    if(bh>0){el('rect',Object.assign({x:cx,y:cy+nB*s*sc,width:nL*s*sc,height:bh*sc},st));txt(cx+nL*s*sc/2,cy+ch+16,`${bh} cm`,{fill:'#712B13','font-weight':600});}
+    if(rw>0||bh>0)txt(cx,cy+ch+44,`Leftover strips are too thin for a ${s} cm square.`,{'text-anchor':'start',fill:'#712B13','font-size':14});
+  }
+
+  S.placed.forEach((p,i)=>{
+    el('rect',{x:cx+p.x*sc,y:cy+p.y*sc,width:s*sc,height:s*sc,fill:'#E1F5EE',stroke:'#1D9E75','stroke-width':2});
+    txt(cx+(p.x+s/2)*sc,cy+(p.y+s/2)*sc,i+1,{'font-size':Math.max(12,s*sc*0.3),fill:'#085041','font-weight':600});
+  });
+  el('rect',{x:cx,y:cy,width:cw,height:ch,fill:'none',stroke:'#2C2C2A','stroke-width':2.5});
+
+  if(S.area){
+    txt(G.zx,G.zy-30,'If we could glue the scraps together…',{'text-anchor':'start','font-size':16,'font-weight':600,fill:'#633806'});
+  }
+  $('counter').textContent=S.placed.length;
+}
+
+function toCm(e){const pt=svg.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;const p=pt.matrixTransform(svg.getScreenCTM().inverse());return{x:(p.x-G.cx)/G.sc,y:(p.y-G.cy)/G.sc};}
+function inWaste(c){const s=S.s;if(S.stage<2)return null;
+  if(c.x>=G.nL*s&&S.L-G.nL*s>0)return`This strip is only <b>${S.L-G.nL*s} cm</b> wide. A ${s} cm square cannot fit here.`;
+  if(c.y>=G.nB*s&&S.B-G.nB*s>0)return`This strip is only <b>${S.B-G.nB*s} cm</b> tall. A ${s} cm square cannot fit here.`;return null;}
+function candidate(c){
+  const s=S.s;
+  if(c.x<0||c.y<0||c.x>S.L||c.y>S.B)return null;
+  let x=Math.max(0,Math.round(c.x-s/2)),y=Math.max(0,Math.round(c.y-s/2));
+  const w=inWaste(c);
+  if(x+s>S.L||y+s>S.B){
+    const why=w||(x+s>S.L?`Only <b>${S.L-x} cm</b> of card left along the length here. A square needs ${s} cm.`:`Only <b>${S.B-y} cm</b> of card left along the breadth here. A square needs ${s} cm.`);
+    return{x,y,ok:false,why};
+  }
+  for(const p of S.placed){if(x<p.x+s&&p.x<x+s&&y<p.y+s&&p.y<y+s)return{x,y,ok:false,why:w||'That space is already used by another square.'};}
+  return{x,y,ok:true};
+}
+function preview(c){
+  gPrev.innerHTML='';if(!c)return;
+  const {sc,cx,cy}=G,s=S.s;
+  el('rect',{x:cx+c.x*sc,y:cy+c.y*sc,width:s*sc,height:s*sc,fill:c.ok?'rgba(29,158,117,.25)':'rgba(226,75,74,.25)',stroke:c.ok?'#1D9E75':'#E24B4A','stroke-width':2,'stroke-dasharray':'6 4','pointer-events':'none'},gPrev);
+}
+function canPlace(){return !( $('reqPred').checked && S.pred===null ) && !S.area && !S.busy;}
+svg.addEventListener('pointermove',e=>{if(!canPlace()){preview(null);return;}preview(candidate(toCm(e)));});
+svg.addEventListener('pointerleave',()=>preview(null));
+svg.addEventListener('pointerdown',e=>{
+  if(S.busy)return;
+  if(S.area){msg('Press <b>Put scraps back</b> first to place squares again.');return;}
+  if($('reqPred').checked&&S.pred===null){msg('Make your prediction in <b>Step 1</b> first.','bad');return;}
+  const c=candidate(toCm(e));if(!c)return;
+  if(!c.ok){msg(c.why,'bad');preview(c);return;}
+  S.placed.push({x:c.x,y:c.y});render();preview(null);
+  msg(`Square ${S.placed.length} cut. Keep going, or use <b>Step 3</b> to check with division.`,'good');
+});
+
+$('lockBtn').onclick=()=>{
+  const v=$('pred').value.trim();
+  if(v===''||!/^\d+$/.test(v)){$('predErr').textContent='Enter a whole number first.';return;}
+  S.pred=+v;$('predErr').textContent='';$('pred').disabled=true;$('lockBtn').disabled=true;
+  unlock();msg(`You predicted <b>${S.pred}</b>. Now tap the card to cut squares and test your prediction.`);
+};
+$('pred').oninput=()=>$('predErr').textContent='';
+$('undoBtn').onclick=()=>{if(S.busy||S.area)return;S.placed.pop();if(S.stage)S.stage=0,resetEq();render();};
+$('clearBtn').onclick=()=>{if(S.busy||S.area)return;S.placed=[];S.stage=0;resetEq();render();msg('Card cleared.');};
+
+function unlock(){const ok=!$('reqPred').checked||S.pred!==null;['s2','s3'].forEach(id=>$(id).classList.toggle('locked',!ok));$('s4').classList.toggle('locked',S.stage<2);}
+function resetEq(){$('eqs').innerHTML='';$('compare').innerHTML='';$('areaEqs').innerHTML='';$('acrossBtn').disabled=true;$('alongBtn').disabled=false;unlock();}
+
+function fillSeq(list,done){S.busy=true;let i=0;const t=setInterval(()=>{S.placed.push(list[i++]);render();if(i>=list.length){clearInterval(t);S.busy=false;done();}},Math.max(40,600/list.length));}
+
+$('alongBtn').onclick=()=>{
+  if(S.busy)return;const s=S.s;S.placed=[];S.stage=1;render();
+  const row=[];for(let i=0;i<G.nL;i++)row.push({x:i*s,y:0});
+  $('alongBtn').disabled=true;
+  fillSeq(row,()=>{
+    const r=S.L%s;
+    $('eqs').innerHTML=`<div class="eq">Along: ${S.L} ÷ ${s} = <b>${G.nL}</b> r <span class="w">${r}</span><br>→ <b>${G.nL}</b> squares in a row${r?`, <span class="w">${r} cm wasted</span>`:''}</div>`;
+    $('acrossBtn').disabled=false;
+    msg(`<b>${G.nL}</b> squares fit along the length.${r?` The last <b>${r} cm</b> is too short for another square, so we drop the remainder.`:''}`,'good');
+  });
+};
+$('acrossBtn').onclick=()=>{
+  if(S.busy)return;const s=S.s;$('acrossBtn').disabled=true;
+  const more=[];for(let j=1;j<G.nB;j++)for(let i=0;i<G.nL;i++)more.push({x:i*s,y:j*s});
+  const finish=()=>{
+    S.stage=2;render();const r=S.B%s;
+    $('eqs').innerHTML+=`<div class="eq">Across: ${S.B} ÷ ${s} = <b>${G.nB}</b> r <span class="w">${r}</span><br>→ <b>${G.nB}</b> rows${r?`, <span class="w">${r} cm wasted</span>`:''}</div><div class="eq">${G.nL} × ${G.nB} = <b>${G.real}</b> squares</div>`;
+    const p=S.pred;let c='';
+    if(p!==null){c=p===G.real?'Your prediction was correct!':p>G.real?`Your prediction was too high. Where would square ${G.real+1} go? Try tapping the strips.`:'Your prediction was too low.';
+      c=`<div class="eq">Your prediction: ${p}<br>Squares really cut: <b>${G.real}</b></div><div style="font-size:15px;margin-top:6px">${c}</div>`;}
+    $('compare').innerHTML=c;unlock();
+    msg(`The card gives <b>${G.real}</b> squares. Try tapping the coral strips: can another square fit? Then go to <b>Step 4</b>.`,'good');
+  };
+  if(more.length)fillSeq(more,finish);else finish();
+};
+
+function leftoverCells(){
+  const s=S.s,cov=new Set();
+  S.placed.forEach(p=>{for(let i=0;i<s;i++)for(let j=0;j<s;j++)cov.add((p.x+i)+','+(p.y+j));});
+  const out=[];
+  for(let y=0;y<S.B;y++)for(let x=0;x<S.L;x++)if(!cov.has(x+','+y))out.push({x,y,right:x>=G.nL*s});
+  out.sort((a,b)=>(b.right-a.right)||(a.right?(a.x-b.x)||(a.y-b.y):(a.y-b.y)||(a.x-b.x)));
+  return out;
+}
+function slotPos(k){return{x:G.zx+(k%G.per)*(G.sq+G.gap),y:G.zy+Math.floor(k/G.per)*(G.sq+60)};}
+function animate(items,dur,done){
+  const t0=performance.now(),n=items.length,stag=Math.min(18,900/Math.max(n,1));
+  function f(t){let all=true;items.forEach((it,i)=>{let u=(t-t0-i*stag)/dur;if(u<1)all=false;u=Math.max(0,Math.min(1,u));const e=u<.5?2*u*u:1-Math.pow(-2*u+2,2)/2;
+    it.r.setAttribute('x',it.fx+(it.tx-it.fx)*e);it.r.setAttribute('y',it.fy+(it.ty-it.fy)*e);});
+    if(!all)requestAnimationFrame(f);else done();}
+  requestAnimationFrame(f);
+}
+
+$('areaBtn').onclick=()=>{
+  if(S.busy||S.stage<2)return;
+  const {sc,cx,cy,sqA}=G,s=S.s;
+  const tA=S.L*S.B,rA=S.placed.length*sqA,lA=tA-rA;
+  if(lA===0){msg('No leftover at all! For this card, area ÷ area gives the same answer as division along and across.','good');return;}
+  S.busy=true;$('areaBtn').disabled=true;
+  const list=leftoverCells();
+  gAnim.innerHTML='';cells=[];
+  list.forEach(c=>{const r=el('rect',{x:cx+c.x*sc,y:cy+c.y*sc,width:sc,height:sc,fill:'#FAEEDA',stroke:'#BA7517','stroke-width':1},gAnim);cells.push({c,r});});
+  msg(`First, the leftover strips are cut into <b>1 cm × 1 cm</b> scrap pieces. There are <b>${lA}</b> of them.`,'glue');
+  setTimeout(()=>{
+    S.area=true;render();
+    const nFull=Math.floor(lA/sqA),rem=lA%sqA,slots=nFull+(rem?1:0);
+    for(let k=0;k<slots;k++){const p=slotPos(k);
+      el('rect',{x:p.x,y:p.y,width:s*sc,height:s*sc,fill:'none',stroke:'#BA7517','stroke-width':2,'stroke-dasharray':k<nFull?'':'6 4'},gAnim);}
+    const items=cells.map((o,i)=>{const k=Math.floor(i/sqA),j=i%sqA,p=slotPos(k);
+      return{r:o.r,fx:+o.r.getAttribute('x'),fy:+o.r.getAttribute('y'),tx:p.x+(j%s)*sc,ty:p.y+Math.floor(j/s)*sc};});
+    msg('Area ÷ area treats the scraps as if they can be <b>glued together</b> to make more squares…','glue');
+    animate(items,1100,()=>{
+      for(let k=0;k<slots;k++){const p=slotPos(k);
+        const fr=(rem/sqA).toFixed(3).replace(/0+$/,'').replace(/\.$/,'');
+        const l1=k<nFull?`Square ${G.real+k+1}?`:`only ${fr}`,l2=k<nFull?'(glued)':'of a square';
+        txt(p.x+s*sc/2,p.y+s*sc+16,l1,{'font-size':14,fill:'#633806','font-weight':600},gAnim);
+        txt(p.x+s*sc/2,p.y+s*sc+34,l2,{'font-size':13,fill:'#633806'},gAnim);}
+      const q=tA/sqA;const qs=Number.isInteger(q)?q:q.toFixed(3).replace(/0+$/,'');
+      $('areaEqs').innerHTML=`<div class="eq">Total area: ${S.L} × ${S.B} = ${tA} cm²<br>One square: ${s} × ${s} = ${sqA} cm²<br>${tA} ÷ ${sqA} = <span class="g">${qs}</span></div>
+      <div class="eq">Real squares: <b>${G.real}</b> (${rA} cm²)<br>Scraps: ${tA} − ${rA} = <span class="g">${lA} cm²</span><br>Glued: ${lA} ÷ ${sqA} = <span class="g">${nFull}</span>${rem?` r ${rem}`:''}</div>
+      <div class="eq"><b>${G.real}</b> + <span class="g">${nFull}</span> = ${G.real+nFull}${rem?` (+ ${rem} cm² of scraps)`:''}</div>`;
+      msg(`So <b>${tA} ÷ ${sqA} = ${qs}</b> only works if we glue scraps into <b>${nFull}</b> more square${nFull===1?'':'s'}. But the question says squares <b>cut from</b> the card. Glued squares do not count, so the answer is <b>${G.real}</b>.`,'glue');
+      S.busy=false;$('backBtn').disabled=false;
+    });
+  },1300);
+};
+$('backBtn').onclick=()=>{
+  if(S.busy)return;S.busy=true;$('backBtn').disabled=true;
+  [...gAnim.querySelectorAll('text'),...gAnim.querySelectorAll('rect[fill="none"]')].forEach(n=>n.remove());
+  const items=cells.map(o=>({r:o.r,fx:+o.r.getAttribute('x'),fy:+o.r.getAttribute('y'),tx:G.cx+o.c.x*G.sc,ty:G.cy+o.c.y*G.sc}));
+  animate(items,900,()=>{gAnim.innerHTML='';cells=[];S.area=false;S.busy=false;render();$('areaBtn').disabled=false;$('areaEqs').innerHTML='';msg('Scraps returned to the card.');});
+};
+
+function resetAll(){
+  S.L=+$('L').value;S.B=+$('B').value;S.s=Math.min(+$('S').value,S.L,S.B);
+  $('Lo').textContent=S.L;$('Bo').textContent=S.B;$('So').textContent=S.s;
+  S.placed=[];S.stage=0;S.pred=null;S.area=false;S.busy=false;
+  $('pred').value='';$('pred').disabled=false;$('lockBtn').disabled=false;$('predErr').textContent='';
+  $('areaBtn').disabled=false;$('backBtn').disabled=true;
+  resetEq();setup();
+  msg($('reqPred').checked?'Start with Step 1: make your prediction.':'Tap the card to cut squares.');
+}
+['L','B','S'].forEach(id=>$(id).addEventListener('input',resetAll));
+$('reqPred').onchange=()=>{unlock();};
+$('resetBtn').onclick=resetAll;
+resetAll();
+</script>
+</body>
+</html>
