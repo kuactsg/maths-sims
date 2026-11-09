@@ -158,7 +158,7 @@ function solveBest(){
 
 function geom(){
   const sc=Math.min(20,600/S.L,420/S.B);
-  const cx=100,cy=80,cw=S.L*sc,ch=S.B*sc,pa=S.p*S.q;
+  const cx=130,cy=80,cw=S.L*sc,ch=S.B*sc,pa=S.p*S.q;
   const w1=grid(S.q,S.p).list.length,w2=grid(S.p,S.q).list.length;
   const best=solveBest();
   const maxLeft=S.L*S.B-Math.min(w1,w2)*pa;
@@ -175,6 +175,7 @@ function setVB(full){svg.setAttribute('viewBox',`0 0 ${G.W} ${full?G.Hz:G.Hc}`);
 
 function setup(){
   geom();svg.innerHTML='';setVB(false);
+  const defs=document.createElementNS(NS,'defs');defs.innerHTML='<marker id="dm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9" fill="none" stroke="#085041" stroke-width="1.6"/></marker>';svg.appendChild(defs);
   gBase=el('g',{},svg);gPrev=el('g',{},svg);gAnim=el('g',{},svg);cells=[];
   const piece=isSq()?`squares of side ${S.p} cm`:`rectangles measuring ${S.q} cm by ${S.p} cm`;
   $('title').textContent=isSq()?'Square Cutter':'Square Cutter: rectangles';
@@ -190,7 +191,7 @@ function render(){
   gBase.innerHTML='';
   const {sc,cx,cy,cw,ch}=G,lay=S.layout;
   txt(cx+cw/2,cy-46,`${S.L} cm`,{'font-size':18,'font-weight':600});
-  txt(cx-60,cy+ch/2,`${S.B} cm`,{'font-size':18,'font-weight':600});
+  txt(cx-92,cy+ch/2,`${S.B} cm`,{'font-size':18,'font-weight':600});
   el('rect',{x:cx,y:cy,width:cw,height:ch,fill:'#fff'});
   if(S.stage>=2&&!S.area){const cov=covered();
     for(let y=0;y<S.B;y++)for(let x=0;x<S.L;x++)if(!cov.has(x+','+y))el('rect',{x:cx+x*sc,y:cy+y*sc,width:sc+.5,height:sc+.5,fill:'#FAECE7'});}
@@ -198,9 +199,9 @@ function render(){
     for(let i=1;i<S.L;i++)el('line',{x1:cx+i*sc,y1:cy,x2:cx+i*sc,y2:cy+ch,stroke:'#E6E4DC','stroke-width':1});
     for(let j=1;j<S.B;j++)el('line',{x1:cx,y1:cy+j*sc,x2:cx+cw,y2:cy+j*sc,stroke:'#E6E4DC','stroke-width':1});}
   if(lay&&lay.type==='grid'){
-    const k1=Math.ceil(22/(lay.pw*sc)),k2=Math.ceil(18/(lay.ph*sc));
-    for(let i=1;i<=lay.nx;i++){const x=cx+i*lay.pw*sc;el('line',{x1:x,y1:cy-10,x2:x,y2:cy,stroke:'#085041','stroke-width':2});if(i%k1===0||i===lay.nx)txt(x,cy-21,i*lay.pw,{'font-size':12,fill:'#085041'});}
-    if(S.stage>=2)for(let j=1;j<=lay.ny;j++){const y=cy+j*lay.ph*sc;el('line',{x1:cx-10,y1:y,x2:cx,y2:y,stroke:'#085041','stroke-width':2});if(j%k2===0||j===lay.ny)txt(cx-22,y,j*lay.ph,{'font-size':12,fill:'#085041'});}
+    const k1=Math.ceil(42/(lay.pw*sc)),k2=Math.ceil(18/(lay.ph*sc));
+    for(let i=1;i<=lay.nx;i++){const x=cx+i*lay.pw*sc;el('line',{x1:x,y1:cy-10,x2:x,y2:cy,stroke:'#085041','stroke-width':2});if(i%k1===0||i===lay.nx)txt(x,cy-21,`${i*lay.pw} cm`,{'font-size':12,fill:'#085041'});}
+    if(S.stage>=2)for(let j=1;j<=lay.ny;j++){const y=cy+j*lay.ph*sc;el('line',{x1:cx-10,y1:y,x2:cx,y2:y,stroke:'#085041','stroke-width':2});if(j%k2===0||j===lay.ny)txt(cx-14,y,`${j*lay.ph} cm`,{'font-size':12,fill:'#085041','text-anchor':'end'});}
     if(S.stage>=2&&!S.area){const rw=S.L-lay.nx*lay.pw,bh=S.B-lay.ny*lay.ph;
       if(rw>0)txt(cx+cw+8,cy+ch/2,`${rw} cm`,{'text-anchor':'start',fill:'#712B13','font-weight':600});
       if(bh>0)txt(cx+lay.nx*lay.pw*sc/2,cy+ch+16,`${bh} cm`,{fill:'#712B13','font-weight':600});}
@@ -208,13 +209,23 @@ function render(){
   if(S.stage>=2&&!S.area&&S.placed.length*G.pa<S.L*S.B)txt(cx,cy+ch+44,`Coral parts are leftover card: too small for another ${isSq()?'square':'piece'}.`,{'text-anchor':'start',fill:'#712B13'});
   S.placed.forEach((p,i)=>{
     el('rect',{x:cx+p.x*sc,y:cy+p.y*sc,width:p.w*sc,height:p.h*sc,fill:'#E1F5EE',stroke:'#1D9E75','stroke-width':2});
-    txt(cx+(p.x+p.w/2)*sc,cy+(p.y+p.h/2)*sc,i+1,{'font-size':Math.max(11,Math.min(26,Math.min(p.w,p.h)*sc*.4)),fill:'#085041','font-weight':600});
+    const d=dimLabels(p),X=cx+p.x*sc,Y=cy+p.y*sc,W=p.w*sc-d.l,H=p.h*sc-d.t;
+    txt(X+d.l+W/2,Y+d.t+H/2,i+1,{'font-size':Math.max(11,Math.min(26,Math.min(W,H)*.45)),fill:'#085041','font-weight':600});
   });
   el('rect',{x:cx,y:cy,width:cw,height:ch,fill:'none',stroke:'#2C2C2A','stroke-width':2.5});
   if(S.area)txt(G.zx,G.zy-30,'If we could glue the scraps together…',{'text-anchor':'start','font-size':16,'font-weight':600,fill:'#633806'});
   $('counter').textContent=S.placed.length;
 }
 
+function dimLabels(p){
+  const {sc,cx,cy}=G,X=cx+p.x*sc,Y=cy+p.y*sc,W=p.w*sc,H=p.h*sc;
+  const r={t:0,l:0};if(W<48||H<52)return r;
+  const a={stroke:'#085041','stroke-width':1.2,'marker-start':'url(#dm)','marker-end':'url(#dm)'},f={'font-size':12,fill:'#085041','font-weight':600};
+  if(p.y===0){el('line',Object.assign({x1:X+4,y1:Y+7,x2:X+W-4,y2:Y+7},a));txt(X+W/2,Y+18,`${p.w} cm`,f);r.t=26;}
+  if(p.x===0&&S.stage>=2){el('line',Object.assign({x1:X+7,y1:Y+4,x2:X+7,y2:Y+H-4},a));
+    const t=txt(X+18,Y+H/2,`${p.h} cm`,f);t.setAttribute('transform',`rotate(-90 ${X+18} ${Y+H/2})`);r.l=26;}
+  return r;
+}
 function dims(){return S.rot?{w:S.p,h:S.q}:{w:S.q,h:S.p};}
 function toCm(e){const pt=svg.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;const p=pt.matrixTransform(svg.getScreenCTM().inverse());return{x:(p.x-G.cx)/G.sc,y:(p.y-G.cy)/G.sc};}
 function stripMsg(c){const l=S.layout;if(!isSq()||S.stage<2||!l||l.type!=='grid')return null;
